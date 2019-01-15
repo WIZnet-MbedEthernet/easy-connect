@@ -125,6 +125,13 @@ WNC14A2AInterface wnc(&dbgout);
 WNC14A2AInterface wnc;
 #endif
 
+#elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET_WIZNET
+#include "WIZnetInterface.h"
+WIZnetInterface eth;
+
+#include "DHCPClient.h"
+DHCPClient dhcp;
+
 
 #else
 #error "No connectivity method chosen. Please add 'config.network-interfaces.value' to your mbed_app.json (see README.md for more information)."
@@ -284,6 +291,55 @@ NetworkInterface* easy_connect(bool log_messages) {
         printf("[EasyConnect] Using Ethernet\n");
     }
     network_interface = &eth;
+
+#if MBED_CONF_EVENTS_SHARED_DISPATCH_FROM_APPLICATION
+    eth.set_blocking(false);
+#endif
+    connect_success = eth.connect();
+#endif
+
+#elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET_WIZNET
+    if (log_messages) {
+        printf("[EasyConnect] Using Ethernet WIZnet\n");
+    }
+
+    //wait during chip reset
+    wait(1);
+    
+    if (log_messages) {
+        printf("[EasyConnect] Init with MAC address\n");
+    }
+
+    uint8_t mac_addr[6] = {0x00, 0x08, 0xdc, 0x45, 0x56, 0x67};
+    eth.init(mac_addr);
+
+    //it might be better to move this DHCP code into WIZnetInterface
+    if (log_messages) {
+        printf("[EasyConnect] DHCP start\n");
+    }
+
+    int timeout_ms = 15*1000;
+    int err = dhcp.setup(&eth, mac_addr, timeout_ms);
+    if (err == (-1)) {
+        if (log_messages) {
+            printf("[EasyConnect] Timeout.\n");
+        }
+        return NULL;
+    }
+    if (log_messages) {
+        printf("[EasyConnect] DHCP completed\n");
+        printf("[EasyConnect] Connected, IP: %d.%d.%d.%d\r\n", dhcp.yiaddr[0], dhcp.yiaddr[1], dhcp.yiaddr[2], dhcp.yiaddr[3]);
+    }
+    char ip[24], gateway[24], netmask[24], dnsaddr[24];
+    sprintf(ip,      "%d.%d.%d.%d", dhcp.yiaddr[0],  dhcp.yiaddr[1],  dhcp.yiaddr[2],  dhcp.yiaddr[3]);
+    sprintf(gateway, "%d.%d.%d.%d", dhcp.gateway[0], dhcp.gateway[1], dhcp.gateway[2], dhcp.gateway[3]);
+    sprintf(netmask, "%d.%d.%d.%d", dhcp.netmask[0], dhcp.netmask[1], dhcp.netmask[2], dhcp.netmask[3]);
+    sprintf(dnsaddr, "%d.%d.%d.%d", dhcp.dnsaddr[0], dhcp.dnsaddr[1], dhcp.dnsaddr[2], dhcp.dnsaddr[3]);
+    eth.init(ip, netmask, gateway);
+    eth.setDnsServerIP(dnsaddr);
+    
+    network_interface = &eth;
+
 #if MBED_CONF_EVENTS_SHARED_DISPATCH_FROM_APPLICATION
     eth.set_blocking(false);
 #endif
@@ -433,6 +489,13 @@ NetworkInterface* easy_get_netif(bool log_messages) {
         printf("[EasyConnect] WNC14A2A\n");
     }
     return  &wnc;
+
+#elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET_WIZNET
+    if (log_messages) {
+        printf("[EasyConnect] ETHERNET WIZNET\n");
+    }
+    return  &eth;
+
 #endif
 }
 

@@ -12,5 +12,7 @@ wifi-x-nucleo-idw01m1
 wifi-x-nucleo-idw01m1/*
 wizfi310-driver
 wizfi310-driver/*
+wiznet-eth-driver
+wiznet-eth-driver/*
 wnc14a2a-driver
 wnc14a2a-driver/*
