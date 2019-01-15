@@ -292,11 +292,10 @@ NetworkInterface* easy_connect(bool log_messages) {
     }
     network_interface = &eth;
 
-#if MBED_CONF_EVENTS_SHARED_DISPATCH_FROM_APPLICATION
+#   if MBED_CONF_EVENTS_SHARED_DISPATCH_FROM_APPLICATION
     eth.set_blocking(false);
-#endif
+#   endif
     connect_success = eth.connect();
-#endif
 
 #elif MBED_CONF_APP_NETWORK_INTERFACE == ETHERNET_WIZNET
     if (log_messages) {
